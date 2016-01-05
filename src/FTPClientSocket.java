@@ -72,7 +72,7 @@ public class FTPClientSocket extends Thread {
 					case "exit":
 						System.exit(0);
 					case "SEARCH":
-						doCommand(cmd, fileName, out);
+						doCommand(cmd, fileName, in);
 						break;
 					case "PULL":
 						doCommand(cmd, fileName, client);
