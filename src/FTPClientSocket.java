@@ -1,26 +1,45 @@
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
+
+import Utils.Constants;
 
 public class FTPClientSocket extends Thread {
 
 	private Socket client=null;
 	private String serverName;
+	private String sharedFolder;
 	private int port;
 
-	public FTPClientSocket(String serverName, int port) {
+	public FTPClientSocket(String serverName, int port, String sharedFolder) {
 		this.serverName = serverName;
 		this.port = port;
+		this.sharedFolder = sharedFolder;
 	}
 
 	public void run() {
 		Scanner scan = new Scanner(System.in);
+		
+		try {
+			updateFilesList();
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
 
 		while (true) {
 
@@ -72,6 +91,52 @@ public class FTPClientSocket extends Thread {
 				}
 			}
 		}
+	}
+
+	private void updateFilesList() throws FileNotFoundException, IOException {
+		
+		ArrayList<String> lst = new ArrayList<String>();
+		
+		try (BufferedReader br = new BufferedReader(new FileReader(new File(Constants.INDEX_FILE)))) {
+			for (String line; (line = br.readLine()) != null;) {
+				List<String> wordsList = Utils.Methods.parseIt(line, ":");
+				if ( ! wordsList.get(2).startsWith(this.serverName))
+					lst.add(line);
+			}
+		}
+		
+		@SuppressWarnings("unused")
+		List<String> newFiles = getDirContentsRecursively(sharedFolder);
+		
+		FileWriter fw = new FileWriter( new File(Constants.INDEX_FILE) );
+		fw.write("");
+		for( String s:newFiles) {
+			fw.append(this.serverName+ ":");
+			fw.append(this.port+ ":");
+			fw.append(s);
+			fw.append('\n');
+		}
+		fw.close();
+	}
+
+	private ArrayList<String> getDirContentsRecursively(String path) {
+		File root = new File( path );
+        File[] list = root.listFiles();
+        ArrayList<String> res= new ArrayList<String>();
+
+        if (list == null) return null;
+
+        for ( File f : list ) {
+            if ( f.isDirectory() ) {
+            	ArrayList<String> al = getDirContentsRecursively( f.getAbsolutePath() );
+            	for(String s:al)
+            		res.add(s);
+            }
+            else {
+                res.add(f.getAbsolutePath());
+            }
+        }
+		return res;
 	}
 
 	private DataInputStream createInputStream() throws IOException {

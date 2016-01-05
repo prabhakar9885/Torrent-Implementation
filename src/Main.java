@@ -13,7 +13,7 @@ public class Main {
 			serverThread.start();
 			
 			// Start Client Thread
-			Thread clientThread = new FTPClientSocket( "127.0.0.1" ,port);
+			Thread clientThread = new FTPClientSocket( "127.0.0.1" ,port, args[0] );
 			clientThread.start();
 			
 		} catch (IOException e) {
