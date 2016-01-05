@@ -20,7 +20,7 @@ public class FTPServerSocket extends Thread {
 
 	public FTPServerSocket(int port) throws IOException {
 		serverSocket = new ServerSocket(port);
-		serverSocket.setSoTimeout(10000);
+		serverSocket.setSoTimeout(100000);
 	}
 
 	public void run() {
@@ -30,40 +30,32 @@ public class FTPServerSocket extends Thread {
 				System.out.println("Waiting for client on port " + serverSocket.getLocalPort() + "...");
 				Socket client = serverSocket.accept();
 				System.out.println("Connected to " + client.getRemoteSocketAddress());
+				
 				DataInputStream in = new DataInputStream(client.getInputStream());
 				DataOutputStream out = new DataOutputStream(client.getOutputStream());
-				out.writeUTF("Connetion terminated from " + client.getLocalSocketAddress());
 
-				OUT_OF_LOOP: 
-				if (cmd.equals("exit"))
-					client.close();
-				else {
-					while (true) {
-						String str = in.readUTF();
-						System.out.println(str);
+				String str = in.readUTF();
+				System.out.println(str);
 
-						List<String> words = Utils.Methods.parseIt(str, ":");
-						cmd = words.get(0).trim();
-						String fileName = words.size() >= 2 ? words.get(1).trim() : null;
+				List<String> words = Utils.Methods.parseIt(str, ":");
+				cmd = words.get(0).trim();
+				String fileName = words.size() >= 2 ? words.get(1).trim() : null;
 
-						switch (cmd) {
-							case "exit":
-								break OUT_OF_LOOP;
-							case "SEARCH":
-								doCommand(cmd, fileName, out);
-								break;
-							case "PULL":
-								doCommand(cmd, fileName, client);
-								break;
-						}
-					}
+				switch (cmd) {
+				case "exit":
+					break;
+				case "SEARCH":
+					doCommand(cmd, fileName, out);
+					break;
+				case "PULL":
+					doCommand(cmd, fileName, client);
+					break;
 				}
+				out.flush();
 			} catch (SocketTimeoutException s) {
 				System.out.println("Socket timed out!");
-				break;
 			} catch (IOException e) {
 				e.printStackTrace();
-				break;
 			}
 		}
 	}
