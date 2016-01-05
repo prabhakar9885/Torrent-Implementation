@@ -48,7 +48,10 @@ public class FTPClientSocket extends Thread {
 			
 			try {
 				// Read the command
-				String str = scan.nextLine();
+				String str;
+				do {
+					str = scan.nextLine();
+				} while( str.trim().length()==0 );
 				System.out.println("Client: " + str);
 				
 				client = new Socket(serverName, port);

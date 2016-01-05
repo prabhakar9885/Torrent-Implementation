@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 import java.util.List;
 
 import Utils.Constants;
@@ -68,21 +69,26 @@ public class FTPServerSocket extends Thread {
 			break;
 		case "SEARCH":
 			DataOutputStream dos = (DataOutputStream) obj;
-			dos.writeUTF(searchFile(fileName));
+			ArrayList<String> lst = searchFile(fileName);
+			dos.writeUTF(lst.toString());
 			break;
 		}
 	}
 
-	private String searchFile(String fileName) throws FileNotFoundException, IOException {
+	private ArrayList<String> searchFile(String fileName) throws FileNotFoundException, IOException {
 
+		ArrayList<String> ls = new ArrayList<String>();
+		
 		try (BufferedReader br = new BufferedReader(new FileReader(new File(Constants.INDEX_FILE)))) {
 			for (String line; (line = br.readLine()) != null;) {
 				List<String> wordsList = Utils.Methods.parseIt(line, ":");
 				if (wordsList.get(2).contains(fileName))
-					return line;
+					ls.add("\n"+line);
 			}
 		}
-		return "File not found";
+		if( ls.size()==0 )
+			ls.add("File not found");
+		return ls;
 	}
 
 	private void SendFile(String fileName, Socket client) throws IOException {
