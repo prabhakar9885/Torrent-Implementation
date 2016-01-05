@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.List;
 import java.util.Scanner;
 
 public class FTPClientSocket extends Thread {
@@ -21,8 +22,9 @@ public class FTPClientSocket extends Thread {
 	public void run() {
 		Scanner scan = new Scanner(System.in);
 		try {
-			System.out.println("Connecting to " + client.getRemoteSocketAddress() + " on port " + client.getPort());
+			String cmd = "";
 			client = new Socket(serverName, port);
+			System.out.println("Connected to " + client.getRemoteSocketAddress() + " on port " + client.getPort());
 			System.out.println("Connected successfully.");
 
 			OutputStream outToServer = client.getOutputStream();
@@ -33,32 +35,53 @@ public class FTPClientSocket extends Thread {
 			DataInputStream in = new DataInputStream(inFromServer);
 			System.out.println("Server says " + in.readUTF());
 
-			while (true) {
-				String str = scan.nextLine();
-				out.writeUTF(str);
-				if (str.trim().equals("exit"))
-					break;
-				doCommand(str, client);
+			OUT_OF_LOOP: if (cmd.equals("exit"))
+				client.close();
+			else {
+				while (true) {
+					String str = scan.nextLine();
+					System.out.println(str);
+					out.writeUTF(str);
+
+					List<String> words = Utils.Methods.parseIt(str, ":");
+					cmd = words.get(0).trim();
+					String fileName = words.size() >= 2 ? words.get(1).trim() : null; //"/home/prabhakar/mozilla-cpy.pdf";
+
+					switch (cmd) {
+						case "exit":
+							break OUT_OF_LOOP;
+						case "SEARCH":
+							doCommand(cmd, fileName, out);
+							break;
+						case "PULL":
+							doCommand(cmd, fileName, client);
+							break;
+					}
+				}
 			}
 			System.out.println("Bye...");
 
-			client.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private void doCommand(String str, Socket client) throws IOException {
-		switch (str) {
+
+	private void doCommand(String cmd, String fileName, Object obj) throws IOException {
+		switch (cmd) {
 		case "PULL":
-			getFile(str, client);
+			Socket client = (Socket) obj;
+			getFile(fileName, client);
 			break;
-		case "SEARH":
+		case "SEARCH":
+			DataInputStream dis = (DataInputStream) obj;
+			System.out.println( dis.readUTF() );
 			break;
 		}
 	}
 
-	private void getFile(String str, Socket client) throws IOException {
+	
+	private void getFile(String fileName, Socket client) throws IOException {
 
 		byte[] mybytearray = new byte[1024];
 		InputStream is = null;
@@ -66,7 +89,7 @@ public class FTPClientSocket extends Thread {
 
 		try {
 			is = client.getInputStream();
-			fos = new FileOutputStream("/home/prabhakar/mozilla-cpy.pdf");
+			fos = new FileOutputStream(fileName+"cpy");
 			System.out.println("Receiving...");
 
 			int count;
